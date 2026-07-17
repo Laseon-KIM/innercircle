@@ -40,6 +40,24 @@ z-index 레이어: 콘텐츠 → 상태바(z-20) → 다이내믹 아일랜드·
 
 `src/screens/`에 컴포넌트를 만들고 `App.tsx`의 `PhoneFrame` 자식으로 넣는다. **라우터가 설치되어 있지 않다** — 현재는 `App.tsx`를 편집해 화면을 교체하는 구조다. 다중 화면 내비게이션이 필요하면 그 결정부터 해야 한다.
 
+## 폰트
+
+**한글은 Pretendard, 영문·숫자는 SF Pro를 쓴다.** (Pretendard가 SF Pro의 한글 짝으로 설계된 폰트라 자연스럽게 맞물린다.)
+
+폰트 스택 **순서만으로는 이 규칙을 구현할 수 없다.** macOS에 설치된 SF Pro는 한글 글리프를 포함하고 있어서, `'SF Pro Text', Pretendard` 순으로 두면 한글까지 SF Pro가 가져간다 (헤드리스 Chrome DOM 측정으로 확인: 한글 문자열 폭이 Pretendard 296.64px가 아닌 SF Pro 쪽 299.06px로 나옴).
+
+따라서 이렇게 구현한다:
+
+1. `@font-face`에서 Pretendard를 **`unicode-range`로 한글 영역에만** 매칭시킨다 (한글 음절 U+AC00–D7A3, 자모 U+1100–11FF 등).
+2. 그 Pretendard를 스택 **맨 앞**에 둔다. 영문·숫자는 unicode-range 밖이라 자동으로 건너뛰고 다음 폰트인 SF Pro로 넘어간다. 순서와 무관하게 결정적으로 동작한다.
+3. 로컬 설치 폰트와 이름이 충돌하지 않도록 `@font-face`의 family는 고유한 이름(예: `PretendardKo`)을 쓴다.
+
+주의사항:
+
+- **SF Pro는 웹폰트로 재배포할 수 없다** (Apple 라이선스). 로컬 설치 폰트로만 참조하며, `'SF Pro Text'`는 SF Pro를 직접 설치한 기기에서만 매칭된다. 기본 상태의 Mac/iOS는 `-apple-system`, `BlinkMacSystemFont`로만 시스템 폰트(=SF Pro)에 접근할 수 있으므로 둘 다 스택에 넣는다.
+- 애플이 아닌 기기(Windows/Android)에는 SF Pro가 없다. 영문·숫자는 시스템 폰트로 대체되므로 목업 충실도는 애플 기기 기준이다.
+- Tailwind v4이므로 폰트 스택은 `src/index.css`의 `@theme`에서 `--font-sans`로 정의한다 (`tailwind.config.js` 없음). Tailwind preflight가 `--font-sans`를 문서 전체 기본 폰트로 전파한다.
+
 ## 제약 사항
 
 - **Tailwind v4**: `tailwind.config.js`가 없다. `@tailwindcss/vite` 플러그인 + `src/index.css`의 `@import "tailwindcss"`로 설정된다. 테마 커스터마이즈는 `index.css`의 `@theme` 블록에서 한다.
