@@ -19,12 +19,15 @@ npm run preview  # dist/ 결과 로컬 확인
 
 이 프로젝트는 **iPhone 목업 셸**이다. Figma 디자인을 실제 기기 크기의 프레임 안에 그려 넣는 것이 목적이다.
 
-렌더 체인: `main.tsx` → `App.tsx` → `PhoneFrame` → `screens/*`
+렌더 체인: `main.tsx` → `App.tsx` → (`Sidebar` + `PhoneFrame` → `screens/<사람>/*`)
+
+`App.tsx`는 셸이다: 왼쪽에 사이드바, 오른쪽 가운데에 현재 선택된 프로토타입 하나를 `PhoneFrame`에 담아 띄운다.
 
 핵심 규칙은 **프레임과 화면의 분리**다:
 
 - `PhoneFrame`(`src/components/PhoneFrame.tsx`)이 기기 크롬(티타늄 바디, 다이내믹 아일랜드, 홈 인디케이터, 측면 버튼), 고정 뷰포트, 스크롤 컨테이너를 모두 소유한다.
-- `src/screens/*`는 **콘텐츠만** 그린다. 자체 프레임이나 상태바를 그리지 말 것. 화면은 뷰포트를 채우는 콘텐츠(`h-full`)로 작성한다.
+- `src/screens/**`는 **콘텐츠만** 그린다. 자체 프레임이나 상태바를 그리지 말 것. 화면은 뷰포트를 채우는 콘텐츠(`h-full`)로 작성한다.
+- 사이드바는 프레임 **바깥**의 작업 도구다. 목업 대상이 아니므로 393pt 좌표계나 SF Pro 규칙을 따르지 않는다.
 
 ### 좌표계
 
@@ -36,9 +39,33 @@ npm run preview  # dist/ 결과 로컬 확인
 
 z-index 레이어: 콘텐츠 → 상태바(z-20) → 다이내믹 아일랜드·홈 인디케이터(z-30).
 
-### 화면 추가
+### 프로토타입 추가
 
-`src/screens/`에 컴포넌트를 만들고 `App.tsx`의 `PhoneFrame` 자식으로 넣는다. **라우터가 설치되어 있지 않다** — 현재는 `App.tsx`를 편집해 화면을 교체하는 구조다. 다중 화면 내비게이션이 필요하면 그 결정부터 해야 한다.
+**폴더 = 사람, 파일 = 프로토타입.** `src/screens/<사람>/<프로토타입>.tsx`를 만들면 왼쪽 사이드바에 자동으로 나타난다. `src/prototypes.ts`가 `import.meta.glob`으로 수집하므로 **등록 파일을 고칠 필요가 없다** — 폴더를 새로 만드는 것만으로 그 사람의 칸이 생긴다.
+
+파일 규약:
+
+```tsx
+import type { PrototypeMeta } from '../../prototypes'
+
+export const meta: PrototypeMeta = {
+  title: '로그인',                                   // 없으면 파일명이 사이드바에 뜬다
+  frame: { statusBarVariant: 'light' },             // 이 화면에만 적용될 PhoneFrame props
+}
+
+export default function LoginScreen() { ... }       // 반드시 default export
+```
+
+- `export default`가 없는 파일은 콘솔 경고와 함께 건너뛴다.
+- `_`로 시작하는 파일(`_Button.tsx`)은 화면이 아닌 부품으로 보고 수집하지 않는다. 특정 사람의 화면들이 공유하는 조각은 이 규칙으로 같은 폴더에 둘 수 있다.
+- `meta`는 화면 컴포넌트와 함께 export되므로 fast-refresh 린트 규칙에 걸린다. `eslint.config.js`가 `src/screens/**`에 한해 `meta` 이름을 허용해 두었다 — 다른 이름을 쓰려면 그 설정도 같이 고쳐야 한다.
+- 사이드바 순서는 이름순이며, **정렬 로케일을 `'en'`으로 고정**했다(영문 폴더 먼저, 한글끼리는 가나다순). 인자 없는 `localeCompare`는 실행 환경 로케일을 따라가 ko-KR 맥과 en-US 맥·CI에서 순서가 뒤집히므로 고정이 필요하다.
+
+### 내비게이션
+
+**라우터 라이브러리는 설치하지 않았다.** `src/useHashRoute.ts`가 `#/<사람>/<프로토타입>` 해시를 읽는 것이 전부이며, 이동은 사이드바의 `<a href="#/...">`가 한다. 해시를 쓰는 이유는 프로토타입 링크를 그대로 공유하면서, 서버 리라이트가 없는 GitHub Pages에서도 새로고침이 깨지지 않기 때문이다. 해시가 없거나 가리키는 화면이 사라졌으면 첫 프로토타입으로 떨어진다.
+
+경로 세그먼트는 폴더명·파일명 그대로다(한글 폴더도 동작한다). 폴더나 파일 이름을 바꾸면 공유된 링크가 깨진다.
 
 ## 폰트
 
