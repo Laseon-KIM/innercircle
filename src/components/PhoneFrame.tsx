@@ -22,7 +22,7 @@ type PhoneFrameProps = {
 export function PhoneFrame({
   children,
   statusBarVariant = 'dark',
-  insetTop = true,
+  insetTop = false,
   homeIndicator = 'dark',
   className = '',
 }: PhoneFrameProps) {
